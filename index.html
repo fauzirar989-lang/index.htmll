@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>レストラン アウラさん — Restoran Aura San</title>
+  <style>
+    :root{ --pink: #d63384; --lightpink:#fff0f6; }
+    body {
+      margin: 0; font-family: Arial, Helvetica, sans-serif;
+      background: url('https://source.unsplash.com/1600x900/?japan,sakura') center/cover no-repeat fixed;
+      color: #222;
+    }
+    body::before{
+      content:""; position:fixed; inset:0;
+      background: rgba(255,182,193,0.72); z-index:-1;
+    }
+    header{
+      background: rgba(214,51,132,0.95); color:#fff; padding:14px; text-align:center;
+      font-weight:700; font-size:20px;
+    }
+    .app {
+      max-width:1100px; margin:18px auto; padding:16px;
+      background: rgba(255,255,255,0.96); border-radius:10px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    }
+    h2 { color:var(--pink); margin:6px 0 12px; text-align:center; }
+    p.center { text-align:center; color:#444; }
+    /* Login */
+    .login-box { max-width:520px; margin:8px auto; text-align:center; }
+    input[type=text], input[type=password], select { width:80%; padding:8px; margin:6px 0; border-radius:6px; border:1px solid #ccc; }
+    button { background:var(--pink); color:#fff; border:none; border-radius:6px; padding:8px 12px; cursor:pointer; }
+    button.ghost { background:transparent; color:var(--pink); border:1px solid var(--pink); }
+    button.warn { background:#ff4d4f; }
+    /* layout */
+    .cols { display:grid; grid-template-columns: 1fr 360px; gap:16px; align-items:start; }
+    .tabs { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:12px; }
+    .tab { padding:8px 14px; background:#fde7ef; border-radius:8px; color:var(--pink); cursor:pointer; }
+    .tab.active { background:var(--pink); color:#fff; font-weight:700; }
+    .menu-grid { display:grid; grid-template-columns: repeat(3,1fr); gap:12px; }
+    .menu-card { background:var(--lightpink); border-radius:8px; padding:8px; text-align:center; border:1px solid #f1d6e3; }
+    .menu-card img { width:100%; height:120px; object-fit:cover; border-radius:6px; }
+    .menu-card h4 { margin:8px 0 4px; }
+    .menu-card p { margin:0; color:var(--pink); font-weight:700; }
+    .cart { background:#fff0f6; padding:12px; border-radius:8px; border:1px solid #f2d0e3; }
+    .cart-item { display:flex; justify-content:space-between; gap:8px; align-items:center; padding:6px 0; border-bottom:1px dashed rgba(0,0,0,0.06); }
+    .small{ font-size:13px; color:#444; }
+    .admin-panel { background:#fff6f9; padding:12px; border-radius:8px; border:1px solid #f2d9e6; }
+    .info { background:#fff; padding:8px; border-radius:6px; border:1px solid #eee; margin-bottom:8px; }
+    .hidden { display:none; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { border:1px solid #ddd; padding:8px; text-align:left; font-size:14px;}
+    .inline-input { width:120px; padding:6px; border-radius:6px; border:1px solid #ccc; }
+    @media(max-width:980px){ .cols { grid-template-columns: 1fr; } .menu-grid { grid-template-columns: repeat(2,1fr); } }
+    @media(max-width:520px){ .menu-grid { grid-template-columns: 1fr; } input[type=text], input[type=password], select { width:96%; } }
+  </style>
+</head>
+<body>
+  <header>🌸 レストラン アウラさん (Restoran Aura San)</header>
+
+  <div class="app">
+
+    <!-- CHOICE / LOGIN -->
+    <div id="choice" class="login-box">
+      <h2>ようこそ、レストラン・アウラさんへ</h2>
+      <p class="center">Silakan pilih mode login: <strong>Pembeli</strong> atau <strong>Admin</strong></p>
+      <div style="display:flex; gap:8px; justify-content:center; margin-bottom:10px;">
+        <button onclick="showLogin('buyer')">Login Pembeli</button>
+        <button onclick="showLogin('admin')">Login Admin</button>
+      </div>
+    </div>
+
+    <!-- BUYER LOGIN -->
+    <div id="buyer-login" class="login-box hidden">
+      <h2>Login Pembeli</h2>
+      <p class="small">Silakan login untuk memesan makanan — Pembeli bebas username & password</p>
+      <input id="buyerName" type="text" placeholder="Nama Anda"><br>
+      <input id="buyerPass" type="password" placeholder="Password (bebas)"><br>
+      <div style="margin-top:8px;">
+        <button onclick="loginBuyer()">Masuk sebagai Pembeli</button>
+        <button class="ghost" onclick="backToChoice()">Batal</button>
+      </div>
+    </div>
+
+    <!-- ADMIN LOGIN -->
+    <div id="admin-login" class="login-box hidden">
+      <h2>Login Admin</h2>
+      <p class="small">Masukkan kredensial admin restoran</p>
+      <input id="adminUser" type="text" placeholder="username"><br>
+      <input id="adminPass" type="password" placeholder="password"><br>
+      <div style="margin-top:8px;">
+        <button onclick="loginAdmin()">Masuk sebagai Admin</button>
+        <button class="ghost" onclick="backToChoice()">Batal</button>
+      </div>
+      <p class="small">Note: username = <strong>admin</strong>, password = <strong>777</strong></p>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="main" class="hidden">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <h2 id="greet"></h2>
+          <p class="small" id="subtitle">ようこそ、レストラン・アウラさんへ — Nikmati menu terbaik kami 🌸</p>
+        </div>
+        <div>
+          <button class="ghost" id="logoutBtn" onclick="logout()">Logout</button>
+        </div>
+      </div>
+
+      <div class="cols" id="contentCols">
+        <!-- LEFT: menu & tabs -->
+        <div>
+          <div class="tabs" id="tabs">
+            <div class="tab active" data-tab="sushi" onclick="switchTab(event)">🍣 Sushi</div>
+            <div class="tab" data-tab="ramen" onclick="switchTab(event)">🍜 Ramen</div>
+            <div class="tab" data-tab="makanan" onclick="switchTab(event)">🍱 Makanan Khas</div>
+            <div class="tab" data-tab="minuman" onclick="switchTab(event)">🥤 Minuman</div>
+            <div class="tab" data-tab="dessert" onclick="switchTab(event)">🍨 Dessert</div>
+          </div>
+
+          <div id="sushi" class="menu-grid"></div>
+          <div id="ramen" class="menu-grid hidden"></div>
+          <div id="makanan" class="menu-grid hidden"></div>
+          <div id="minuman" class="menu-grid hidden"></div>
+          <div id="dessert" class="menu-grid hidden"></div>
+        </div>
+
+        <!-- RIGHT: cart OR admin panel -->
+        <div>
+          <!-- Buyer Cart Panel -->
+          <div id="buyerPanel" class="cart hidden">
+            <h3>🛒 Keranjang</h3>
+            <div id="cartList" style="max-height:260px; overflow:auto;"></div>
+            <p><strong>Total: Rp <span id="cartTotal">0</span></strong></p>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button onclick="checkout()">Checkout (Tampil QR)</button>
+              <button class="ghost" onclick="clearCart()">Bersihkan</button>
+            </div>
+
+            <div id="qrArea" class="hidden" style="margin-top:12px; text-align:center;">
+              <p class="small">Scan QR untuk bayar (demo):</p>
+              <img id="qrImg" src="" alt="QR" style="width:170px; border-radius:8px; border:4px solid #fff;">
+              <p id="qrNote" class="small"></p>
+            </div>
+          </div>
+
+          <!-- Admin Panel -->
+          <div id="adminPanel" class="admin-panel hidden">
+            <h3>🔐 Panel Admin</h3>
+            <div class="info">
+              <p><strong>Penghasilan (dari pesanan lunas):</strong> Rp <span id="adminIncome">0</span></p>
+              <p><strong>Pajak (10%):</strong> Rp <span id="adminTax">0</span></p>
+            </div>
+
+            <div style="margin-bottom:10px;">
+              <strong>Daftar Pesanan</strong>
+              <div id="ordersList" style="max-height:220px; overflow:auto; margin-top:8px;"></div>
+            </div>
+
+            <div style="margin-top:8px;">
+              <strong>Edit Menu (inline)</strong>
+              <div id="adminMenuEdit" style="max-height:240px; overflow:auto; margin-top:8px;"></div>
+              <div style="margin-top:8px;"><button class="ghost" onclick="saveMenuEdits()">Simpan Perubahan Menu</button></div>
+            </div>
+          </div>
+
+        </div>
+      </div> <!-- end cols -->
+
+      <p class="small center" style="margin-top:12px;">Catatan: demo front-end. Data tersimpan di memori (JS). Reload akan menghapus sesi.</p>
+    </div>
+
+  </div>
+
+<script>
+/* =========================
+   Data awal menu (5 kategori x 5 item)
+   ========================= */
+let menu = {
+  sushi: [
+    {nama:'Sushi Salmon', harga:25000, img:'https://suaragong.com/wp-content/uploads/2024/10/salmon-sushi.webp'},
+    {nama:'Sushi Tuna', harga:23000, img:'https://img.okezone.com/content/2023/09/20/298/2886357/6-jenis-ikan-yang-dijadikan-sushi-jepang-nomor-1-ternyata-bukan-salmon-mSPUun9F60.jpg'},
+    {nama:'Sushi Ebi', harga:27000, img:'https://img.lovepik.com/photo/20211201/medium/lovepik-shrimp-sushi-picture_501301916.jpg'},
+    {nama:'California Roll', harga:35000, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQuN_rKCgt216x6mZpiIR4Pd7Gu1G_KbAswDA&s'},
+    {nama:'Sashimi Mix', harga:40000, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTvmuZuClZf_UgfZcUB9idenO-W5Fo2Jq2dpA&s'}
+  ],
+  ramen: [
+    {nama:'Ramen Shoyu', harga:40000, img:'https://radarlampung.disway.id/upload/9bcce41b3c09c3d9fad7985f91c6db4d.jpeg'},
+    {nama:'Ramen Miso', harga:42000, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSItfs7nn7YLaOQ1p5vabrkVseeFmfr3Kcl3w&s'},
+    {nama:'Ramen Pedas', harga:45000, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT4qJFlG6uuVaHWIL5ZnSvs2BkuWjU85inE1w&s'},
+    {nama:'Ramen Tonkotsu', harga:50000, img:'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSR22aN4FYJToTlHjfz4n76QfSsBXSQKjj6-g&s'},
+    {nama:'Ramen Seafood', harga:48000, img:'https://watermark.lovepik.com/photo/20211208/large/lovepik-japanese-seafood-ramen-picture_501620990.jpg'},
+  ],
+  makanan: [
+    {nama:'Takoyaki', harga:25000, img:'https://asset.kompas.com/crops/K3FdQTjQMIiNJ0OhKQTE401YeoU=/0x0:1000x667/1200x800/data/photo/2021/07/23/60fa5f58ea527.jpg'},
+    {nama:'Okonomiyaki', harga:30000, img:'https://www.dapurkobe.co.id/wp-content/uploads/okonomiyaki.jpg'},
+    {nama:'Tempura', harga:35000, img:'https://static.promediateknologi.id/crop/0x0:0x0/0x0/webp/photo/p2/259/2025/09/11/cinta-laura-25-3759197693.png'},
+    {nama:'Gyoza', harga:28000, img:'https://awsimages.detik.net.id/community/media/visual/2021/06/28/fakta-menarik-gyoza-1.jpeg?w=724'},
+    {nama:'Tonkatsu', harga:38000, img:'https://asset.kompas.com/crops/GYwaB-H00J61C8GHB09N-xBPYnE=/32x0:791x506/1200x800/data/photo/2023/01/04/63b563fd4b23e.jpg'}
+  ],
+  minuman: [
+    {nama:'Ocha (Teh Hijau)', harga:12000, img:'https://awsimages.detik.net.id/community/media/visual/2025/06/02/ilustrasi-minuman-matcha-1748853115765_169.jpeg?w=1200'},
+    {nama:'Matcha Latte', harga:20000, img:'https://awsimages.detik.net.id/community/media/visual/2024/11/21/krisis-matcha-di-jepang-berdampak-ke-gerai-minuman-di-singapura.webp?w=600&q=90'},
+    {nama:'Ramune', harga:25000, img:'https://images-cdn.ubuy.co.id/65ebdf1761aa7249ff2dbd4a-fusion-select-ramune-japanese-soda.jpg'},
+    {nama:'Kohi (Kopi Jepang)', harga:18000, img:'https://assets-pergikuliner.com/T_ktL_32S-mk8LZdZR3CmbPrqrA=/385x290/smart/https://assets-pergikuliner.com/uploads/image/picture/2070166/picture-1604887686.jpg'},
+    {nama:'Yuzu Juice', harga:22000, img:'https://s.alicdn.com/@sc04/kf/Afacad8c99fd64b4d9ddbce140eaece71c/189771892/Afacad8c99fd64b4d9ddbce140eaece71c.jpg'}
+  ],
+  dessert: [
+    {nama:'Mochi', harga:15000, img:'https://www.justonecookbook.com/wp-content/uploads/2019/09/Dango-recipe-0751-I-1.jpg'},
+    {nama:'Dorayaki', harga:18000, img:'https://www.justonecookbook.com/wp-content/uploads/2022/08/Japanese-Dorayaki-3716.jpg'},
+    {nama:'Taiyaki', harga:20000, img:'https://media.istockphoto.com/id/536751803/id/foto/taiyaki-gula-gula-jepang.jpg?s=612x612&w=0&k=20&c=3FAev153dMNrpnhzr5XsytniQnmpO3pNZxJKLuGo9iM='},
+    {nama:'Es Krim Matcha', harga:22000, img:'https://www.shutterstock.com/image-photo/japanese-dessert-matcha-ice-cream-260nw-2009616530.jpg'},
+    {nama:'Daifuku', harga:25000, img:'https://img2.beritasatu.com/cache/beritasatu/480x310-3/2023/10/1696654727-1920x1440.webp'}
+  ]
+};
+
+/* state */
+let currentUser = {type:null, name:null}; // 'buyer' or 'admin'
+let cart = []; // {nama,harga,qty,cat,index}
+let orders = []; // {id,buyer,items,total,paid}
+let pendingMenuEdits = {}; // for admin edits in-place
+
+/* ---------- helpers ---------- */
+function el(q){ return document.querySelector(q); }
+function show(q){ document.getElementById(q).classList.remove('hidden'); }
+function hide(q){ document.getElementById(q).classList.add('hidden'); }
+
+/* ---------- show login screens ---------- */
+function showLogin(mode){
+  hide('choice'); hide('buyer-login'); hide('admin-login');
+  if(mode==='buyer') show('buyer-login');
+  else show('admin-login');
+}
+function backToChoice(){
+  hide('buyer-login'); hide('admin-login'); show('choice');
+}
+
+/* ---------- buyer login ---------- */
+function loginBuyer(){
+  const name = document.getElementById('buyerName').value.trim();
+  const pass = document.getElementById('buyerPass').value; // not used for auth
+  if(!name){ alert('Nama pembeli tidak boleh kosong'); return; }
+  currentUser = {type:'buyer', name};
+  startAppForBuyer();
+}
+
+/* ---------- admin login ---------- */
+function loginAdmin(){
+  const u = document.getElementById('adminUser').value.trim();
+  const p = document.getElementById('adminPass').value.trim();
+  if(u==='admin' && p==='777'){
+    currentUser = {type:'admin', name:'Admin'};
+    startAppForAdmin();
+  } else {
+    alert('Kredensial admin salah!');
+  }
+}
+
+/* ---------- start app views ---------- */
+function startAppForBuyer(){
+  hide('choice'); hide('buyer-login'); hide('admin-login');
+  show('main');
+  // show buyer panel, hide admin panel
+  document.getElementById('buyerPanel').classList.remove('hidden');
+  document.getElementById('adminPanel').classList.add('hidden');
+  document.getElementById('greet').innerText = `Selamat datang, ${currentUser.name} 👋 — ようこそ、レストラン・アウラさんへ`;
+  renderAllMenus();
+  switchTabByName('sushi');
+  renderCart();
+}
+
+function startAppForAdmin(){
+  hide('choice'); hide('buyer-login'); hide('admin-login');
+  show('main');
+  document.getElementById('buyerPanel').classList.add('hidden');
+  document.getElementById('adminPanel').classList.remove('hidden');
+  document.getElementById('greet').innerText = `Admin — Panel Manajemen`;
+  renderAllMenus(); // still render menus so admin can edit inline list
+  switchTabByName('sushi');
+  renderOrders();
+  renderAdminMenuEdit();
+  updateIncomeTax();
+}
+
+/* ---------- logout ---------- */
+function logout(){
+  currentUser = {type:null, name:null};
+  cart = [];
+  hide('main');
+  hide('buyer-login'); hide('admin-login');
+  show('choice');
+  // clear inputs
+  document.getElementById('buyerName').value='';
+  document.getElementById('buyerPass').value='';
+  document.getElementById('adminUser').value='';
+  document.getElementById('adminPass').value='';
+  // hide QR
+  document.getElementById('qrArea').classList.add('hidden');
+}
+
+/* ---------- render menus for buyer (and admin view) ---------- */
+function renderAllMenus(){
+  Object.keys(menu).forEach(cat=>{
+    const container = document.getElementById(cat);
+    container.innerHTML = '';
+    menu[cat].forEach((m, idx) => {
+      const card = document.createElement('div');
+      card.className = 'menu-card';
+      // Use data attributes to identify item for admin editing effect if needed
+      card.innerHTML = `
+        <img src="${m.img}" alt="${m.nama}">
+        <h4>${m.nama}</h4>
+        <p>Rp ${m.harga.toLocaleString()}</p>
+        <div style="margin-top:8px;">
+          <button onclick="addToCart('${cat}',${idx})">Tambah</button>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  });
+}
+
+/* ---------- tabs ---------- */
+function switchTab(e){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  e.currentTarget.classList.add('active');
+  const id = e.currentTarget.getAttribute('data-tab');
+  document.querySelectorAll('.menu-grid').forEach(g => g.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+function switchTabByName(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  const t = Array.from(document.querySelectorAll('.tab')).find(x=>x.getAttribute('data-tab')===name);
+  if(t) t.classList.add('active');
+  document.querySelectorAll('.menu-grid').forEach(g => g.classList.add('hidden'));
+  document.getElementById(name).classList.remove('hidden');
+}
+
+/* ---------- cart operations ---------- */
+function addToCart(cat, idx){
+  if(currentUser.type !== 'buyer'){ alert('Silakan login sebagai pembeli untuk memesan.'); return; }
+  const m = menu[cat][idx];
+  const found = cart.find(i => i.nama === m.nama);
+  if(found) found.qty++;
+  else cart.push({nama:m.nama, harga:m.harga, qty:1, cat, idx});
+  renderCart();
+}
+
+function renderCart(){
+  const list = document.getElementById('cartList');
+  list.innerHTML = '';
+  let total = 0;
+  if(cart.length===0) list.innerHTML = '<p class="small">Keranjang kosong</p>';
+  cart.forEach((it, i)=>{
+    const subtotal = it.harga*it.qty;
+    total += subtotal;
+    const row = document.createElement('div');
+    row.className = 'cart-item';
+    row.innerHTML = `
+      <div>
+        <div><strong>${it.nama}</strong></div>
+        <div class="small">Rp ${it.harga.toLocaleString()} x ${it.qty} = Rp ${subtotal.toLocaleString()}</div>
+      </div>
+      <div>
+        <button class="ghost" onclick="changeQty(${i},1)">+</button>
+        <button class="ghost" onclick="changeQty(${i},-1)">-</button>
+        <button class="warn" onclick="removeCart(${i})">Hapus</button>
+      </div>
+    `;
+    list.appendChild(row);
+  });
+  document.getElementById('cartTotal').innerText = total.toLocaleString();
+  // hide QR area
+  document.getElementById('qrArea').classList.add('hidden');
+  document.getElementById('qrImg').src='';
+  document.getElementById('qrNote').innerText='';
+}
+
+function changeQty(index, delta){
+  cart[index].qty += delta;
+  if(cart[index].qty <= 0) cart.splice(index,1);
+  renderCart();
+}
+function removeCart(index){ cart.splice(index,1); renderCart(); }
+function clearCart(){ if(confirm('Kosongkan keranjang?')){ cart=[]; renderCart(); } }
+
+/* ---------- checkout -> create order and show QR ---------- */
+function checkout(){
+  if(cart.length===0){ alert('Keranjang kosong!'); return; }
+  // Make order id
+  const id = 'ORD' + Date.now();
+  const items = JSON.parse(JSON.stringify(cart)); // copy
+  const total = items.reduce((s,it)=>s+it.harga*it.qty,0);
+  const order = {id, buyer: currentUser.name, items, total, paid:false, created:new Date().toISOString()};
+  orders.push(order);
+  // clear cart
+  cart = [];
+  renderCart();
+  // show QR (demo)
+  const dataText = `Order:${id} Total:Rp ${total}`;
+  const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(dataText);
+  document.getElementById('qrImg').src = qrUrl;
+  document.getElementById('qrArea').classList.remove('hidden');
+  document.getElementById('qrNote').innerText = `Order ${id} dibuat. (Demo: QR hanya ilustrasi pembayaran)`;
+  // refresh admin orders view if admin logged in separately later
+  renderOrders();
+  updateIncomeTax();
+  alert('Pesanan dibuat: ' + id + '\nSilakan lanjutkan pembayaran (demo).');
+}
+
+/* ---------- admin: orders, income, tax ---------- */
+function renderOrders(){
+  const el = document.getElementById('ordersList');
+  el.innerHTML = '';
+  if(orders.length===0){ el.innerHTML = '<p class="small">Belum ada pesanan.</p>'; return; }
+  // show latest first
+  orders.slice().reverse().forEach(o=>{
+    const div = document.createElement('div');
+    div.className = 'info';
+    const itemsStr = o.items.map(it => `${it.nama} x${it.qty}`).join('<br>');
+    div.innerHTML = `
+      <div style="display:flex; justify-content:space-between; gap:8px;">
+        <div style="flex:1">
+          <div><strong>ID:</strong> ${o.id}</div>
+          <div><strong>Pembeli:</strong> ${o.buyer}</div>
+          <div class="small"><strong>Items:</strong><br>${itemsStr}</div>
+          <div class="small"><strong>Dibuat:</strong> ${new Date(o.created).toLocaleString()}</div>
+        </div>
+        <div style="text-align:right;">
+          <div><strong>Total:</strong> Rp ${o.total.toLocaleString()}</div>
+          <div class="small">Status: <strong>${o.paid ? 'LUNAS' : 'BELUM BAYAR'}</strong></div>
+          <div style="margin-top:8px;">
+            <button onclick="togglePaid('${o.id}')">${o.paid ? 'Batalkan Lunas' : 'Tandai Lunas'}</button>
+            <button class="ghost" onclick="deleteOrder('${o.id}')">Hapus</button>
+          </div>
+        </div>
+      </div>
+    `;
+    el.appendChild(div);
+  });
+  updateIncomeTax();
+}
+
+function togglePaid(id){
+  const o = orders.find(x=>x.id===id);
+  if(!o) return;
+  o.paid = !o.paid;
+  renderOrders();
+}
+function deleteOrder(id){
+  if(!confirm('Hapus order ini?')) return;
+  orders = orders.filter(x=>x.id!==id);
+  renderOrders();
+}
+function updateIncomeTax(){
+  const income = orders.filter(o=>o.paid).reduce((s,o)=>s+o.total,0);
+  document.getElementById('adminIncome').innerText = income.toLocaleString();
+  document.getElementById('adminTax').innerText = Math.round(income*0.10).toLocaleString();
+}
+
+/* ---------- admin: inline edit menu ---------- */
+function renderAdminMenuEdit(){
+  const el = document.getElementById('adminMenuEdit');
+  el.innerHTML = '';
+  Object.keys(menu).forEach(cat=>{
+    const title = document.createElement('div');
+    title.innerHTML = `<strong style="color:var(--pink); text-transform:capitalize">${cat}</strong>`;
+    el.appendChild(title);
+    menu[cat].forEach((m, idx)=>{
+      const row = document.createElement('div');
+      row.style.display = 'flex'; row.style.alignItems='center'; row.style.justifyContent='space-between';
+      row.style.gap='8px'; row.style.marginTop='6px';
+      row.innerHTML = `
+        <div style="flex:1">
+          <input class="inline-input" id="name_${cat}_${idx}" value="${m.nama}">
+        </div>
+        <div style="width:140px;">
+          Rp <input class="inline-input" id="price_${cat}_${idx}" type="number" value="${m.harga}">
+        </div>
+      `;
+      el.appendChild(row);
+    });
+  });
+  // store snapshot in pendingMenuEdits
+  pendingMenuEdits = JSON.parse(JSON.stringify(menu));
+}
+
+function saveMenuEdits(){
+  // read inputs and update menu object
+  Object.keys(menu).forEach(cat=>{
+    menu[cat].forEach((m, idx)=>{
+      const nameInput = document.getElementById(`name_${cat}_${idx}`);
+      const priceInput = document.getElementById(`price_${cat}_${idx}`);
+      if(nameInput && priceInput){
+        const newName = nameInput.value.trim();
+        const newPrice = parseInt(priceInput.value);
+        if(newName) menu[cat][idx].nama = newName;
+        if(!isNaN(newPrice) && newPrice >= 0) menu[cat][idx].harga = newPrice;
+      }
+    });
+  });
+  // re-render menus and admin panels
+  renderAllMenus();
+  renderAdminMenuEdit();
+  renderOrders(); // orders keep old totals (orders are snapshots)
+  alert('Perubahan menu berhasil disimpan.');
+}
+
+/* ---------- utility ---------- */
+function renderAdminMenuEditOnStart(){ renderAdminMenuEdit(); }
+
+/* ---------- init ---------- */
+(function init(){
+  // default: show choice screen
+  show('choice');
+  // render menus initially
+  renderAllMenus();
+  // default tab sushi
+  switchTabByName('sushi');
+})();
+</script>
+</body>
+</html>
